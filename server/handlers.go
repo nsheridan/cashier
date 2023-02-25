@@ -124,12 +124,19 @@ func (a *application) auth(w http.ResponseWriter, r *http.Request) {
 
 func (a *application) index(w http.ResponseWriter, r *http.Request) {
 	tok := a.getAuthToken(r)
-	page := struct {
-		Token string
-	}{tok.AccessToken}
-	page.Token = encodeString(page.Token)
-	tmpl := template.Must(template.New("token.html").Parse(templates.Token))
-	tmpl.Execute(w, page)
+	autoToken := a.getSessionVariable(r, "auto_token")
+	if autoToken != "" {
+		http.Redirect(w, r,
+			fmt.Sprintf("http://localhost:%s/auth/callback?token=%s",
+				autoToken, tok.AccessToken), http.StatusSeeOther)
+	} else {
+		page := struct {
+			Token string
+		}{tok.AccessToken}
+		page.Token = encodeString(page.Token)
+		tmpl := template.Must(template.New("token.html").Parse(templates.Token))
+		tmpl.Execute(w, page)
+	}
 }
 
 func (a *application) revoked(w http.ResponseWriter, r *http.Request) {

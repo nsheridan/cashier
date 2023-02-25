@@ -3,12 +3,14 @@ package client
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -171,4 +173,50 @@ func Sign(pub ssh.PublicKey, token string, conf *Config) (*ssh.Certificate, erro
 		return nil, fmt.Errorf("did not receive a valid certificate from server")
 	}
 	return cert, nil
+}
+
+// Listener type contains information for the client listener.
+type Listener struct {
+	srv   *http.Server
+	Port  int
+	Token chan string
+}
+
+// StartHTTPServer starts an http server in the background.
+func StartHTTPServer() *Listener {
+	listener := &Listener{
+		srv:   &http.Server{},
+		Token: make(chan string),
+	}
+	authCallbackPath := "/auth/callback" // TODO: Random?
+
+	http.HandleFunc(authCallbackPath,
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Write([]byte("<html><head><title>Authorized</title></head><body>Authorized. You can now close this window.</body></html>"))
+			defer r.Body.Close()
+			listener.Token <- r.FormValue("token")
+		})
+
+	// Create the http server.
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return nil
+	}
+	listener.Port = l.Addr().(*net.TCPAddr).Port
+
+	go func() {
+		err := listener.srv.Serve(l)
+		if err == http.ErrServerClosed {
+			fmt.Printf("Httpserver: Server() error: %s", err)
+		}
+		return
+	}()
+
+	return listener
+}
+
+// Shutdown stops the server created in StartHTTPServer.
+func (l *Listener) Shutdown() {
+	l.srv.Shutdown(context.Background())
 }

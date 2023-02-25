@@ -16,6 +16,7 @@ type Config struct {
 	Validity               string `mapstructure:"validity"`
 	ValidateTLSCertificate bool   `mapstructure:"validate_tls_certificate"`
 	PublicFilePrefix       string `mapstructure:"key_file_prefix"`
+	AutoToken              bool   `mapstructure:"auto_token"`
 }
 
 func setDefaults() {
@@ -25,6 +26,7 @@ func setDefaults() {
 	viper.BindPFlag("validity", pflag.Lookup("validity"))
 	viper.BindPFlag("key_file_prefix", pflag.Lookup("key_file_prefix"))
 	viper.SetDefault("validateTLSCertificate", true)
+	viper.SetDefault("auto_token", false)
 }
 
 // ReadConfig reads the client configuration from a file into a Config struct.
