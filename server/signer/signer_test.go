@@ -106,3 +106,24 @@ func TestPermissions(t *testing.T) {
 		t.Errorf("Wrong options: wanted: %v got :%v", cert.CriticalOptions, want.options)
 	}
 }
+
+func TestValidityOverride(t *testing.T) {
+	signer = &KeySigner{
+		ca:               key,
+		validity:         12 * time.Hour,
+		principals:       []string{"ec2-user"},
+		permissions:      []string{"permit-pty", "force-command=/bin/ls"},
+		validityOverride: true,
+	}
+	r := &lib.SignRequest{
+		Key:        string(testdata.Pub),
+		ValidUntil: time.Now().Add(1 * time.Hour),
+	}
+	cert, err := signer.SignUserKey(r, "gopher1")
+	if err != nil {
+		t.Error(err)
+	}
+	if time.Now().Add(2 * time.Hour).After(time.Unix(int64(cert.ValidBefore), 0)) {
+		t.Errorf("cert should have had ValidBefore overridden by validityOverride flag: wanted approx: %d, got: %d", time.Now().UTC().Add(signer.validity).Unix(), cert.ValidBefore)
+	}
+}

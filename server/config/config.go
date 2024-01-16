@@ -65,6 +65,7 @@ type SSH struct {
 	AdditionalPrincipals []string `hcl:"additional_principals"`
 	MaxAge               string   `hcl:"max_age"`
 	Permissions          []string `hcl:"permissions"`
+	ValidityOverride     bool     `hcl:"validity_override"`
 }
 
 // AWS holds Amazon AWS configuration.
